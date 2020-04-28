@@ -12,9 +12,7 @@ import javax.annotation.Nullable;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
+import java.util.*;
 
 import static com.wynntils.core.utils.EncodingUtils.*;
 
@@ -331,5 +329,14 @@ public class WaypointProfile {
             return displayName;
         }
 
+        public static final Map<Integer, WaypointType> inttotype = new HashMap<>();
+        public static final Map<WaypointType, Integer> typetoint = new HashMap<>();
+        static {
+            WaypointType[] types = values();
+            for (int i = 0; i < types.length; i++) {
+                inttotype.put(i, types[i]);
+                typetoint.put(types[i], i);
+            }
+        }
     }
 }

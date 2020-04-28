@@ -13,6 +13,8 @@ import com.wynntils.modules.map.MapModule;
 import com.wynntils.modules.map.configs.MapConfig;
 import com.wynntils.modules.map.instances.WaypointProfile;
 import com.wynntils.modules.map.overlays.objects.MapWaypointIcon;
+import me.gizer.wynnpointdb.WaypointTable;
+import me.gizer.wynnpointdb.db.Connector;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiButtonImage;
@@ -22,6 +24,8 @@ import net.minecraft.util.text.TextFormatting;
 import org.lwjgl.input.Mouse;
 
 import java.io.IOException;
+import java.nio.file.Paths;
+import java.sql.SQLException;
 import java.util.*;
 
 public class WaypointOverviewUI extends GuiScreen {
@@ -34,6 +38,8 @@ public class WaypointOverviewUI extends GuiScreen {
     private GuiButton exitBtn;
     private GuiButton exportBtn;
     private GuiButton importBtn;
+    private GuiButton dbExportBtn;
+    private GuiButton dbImportBtn;
     private ArrayList<GuiButton> editButtons = new ArrayList<>();
 
     private List<String> exportText;
@@ -51,6 +57,9 @@ public class WaypointOverviewUI extends GuiScreen {
     private int group = ungroupedIndex;
     private int groupWidth;
     private int groupScroll = 0;
+
+    private Connector connector = Connector.sqliteConnector(Minecraft.getMinecraft().gameDir.toPath().resolve("mods").resolve("WynnPoints.sqlite"));
+    private WaypointTable waypointTable = new WaypointTable(connector);
 
     @Override
     public void initGui() {
@@ -73,6 +82,9 @@ public class WaypointOverviewUI extends GuiScreen {
 
         this.buttonList.add(exportBtn = new GuiButton(8, this.width/2 + 26, this.height - 45, 50, 20, "EXPORT"));
         this.buttonList.add(importBtn = new GuiButton(9, this.width/2 - 76, this.height - 45, 50, 20, "IMPORT"));
+
+        this.buttonList.add(dbExportBtn = new GuiButton(10, this.width/2 + 80, this.height - 45, 60, 20, "DB EXPORT"));
+        this.buttonList.add(dbImportBtn = new GuiButton(11, this.width/2 - 140, this.height - 45, 60, 20, "DB IMPORT"));
 
         onWaypointChange();
     }
@@ -225,8 +237,8 @@ public class WaypointOverviewUI extends GuiScreen {
             if (data != null) data = data.replaceAll("\\s+", "");
             if (data == null || data.isEmpty()) {
                 importText = Arrays.asList(
-                    "Import  ==  ERROR",
-                    "Clipboard is empty"
+                        "Import  ==  ERROR",
+                        "Clipboard is empty"
                 );
                 return;
             }
@@ -256,9 +268,30 @@ public class WaypointOverviewUI extends GuiScreen {
                 onWaypointChange();
             }
             importText = Arrays.asList(
-                "Import  ==  SUCCESS",
-                String.format("Imported %d waypoints", newWaypoints)
+                    "Import  ==  SUCCESS",
+                    String.format("Imported %d waypoints", newWaypoints)
             );
+        } else if (b == dbExportBtn) {
+            try {
+                waypointTable.doConnected(connection -> {
+                    waypointTable.create();
+                    waypointTable.postlist(waypoints);
+                });
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        } else if (b == dbImportBtn) {
+            try {
+                waypointTable.doConnected(connection -> {
+                    waypointTable.create();
+                    waypoints.clear();
+                    waypoints.addAll(waypointTable.getlist());
+
+                });
+                updateScreen();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         } else if (b.id < 0) {
             // A group button
             if (b == nextGroupBtn) {
